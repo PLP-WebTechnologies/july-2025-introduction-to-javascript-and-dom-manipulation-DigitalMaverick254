@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Sports Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+        .container {
+            max-width: 800px;
+        }
+        /* Custom scrollbar styling for the event list */
+        #event-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        #event-list::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 10px;
+        }
+        #event-list::-webkit-scrollbar-thumb {
+            background-color: #4a5568;
+            border-radius: 10px;
+            border: 2px solid #1e293b;
+        }
+    </style>
+</head>
+<body class="p-6">
+
+    <!-- Main Container -->
+    <div class="container mx-auto bg-slate-800 rounded-2xl shadow-xl p-8 space-y-8">
+        
+        <!-- Header Section -->
+        <header class="text-center space-y-2">
+            <h1 class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-blue-500">
+                Sports Event Dashboard
+            </h1>
+            <p class="text-slate-400 text-lg">Your live feed for all things sports.</p>
+        </header>
+
+        <!-- Dynamic Content Section -->
+        <div class="grid md:grid-cols-2 gap-8">
+            
+            <!-- Event List -->
+            <div class="space-y-4">
+                <h2 class="text-2xl font-semibold text-slate-200">Upcoming Events</h2>
+                <ul id="event-list" class="bg-slate-700 rounded-lg p-4 max-h-[300px] overflow-y-auto space-y-2 shadow-inner">
+                    <li class="event-item p-3 bg-slate-600 rounded-lg flex justify-between items-center transition-transform hover:scale-105 duration-200">
+                        <span>⚽ Football Match: Man City vs Liverpool</span>
+                        <span class="text-xs font-mono text-teal-300">Live</span>
+                    </li>
+                    <li class="event-item p-3 bg-slate-600 rounded-lg flex justify-between items-center transition-transform hover:scale-105 duration-200">
+                        <span>🏀 NBA Finals: Game 5</span>
+                        <span class="text-xs font-mono text-blue-300">Scheduled</span>
+                    </li>
+                    <li class="event-item p-3 bg-slate-600 rounded-lg flex justify-between items-center transition-transform hover:scale-105 duration-200">
+                        <span>🎾 Wimbledon Final</span>
+                        <span class="text-xs font-mono text-blue-300">Scheduled</span>
+                    </li>
+                    <li class="event-item p-3 bg-slate-600 rounded-lg flex justify-between items-center transition-transform hover:scale-105 duration-200">
+                        <span>🏎️ F1 Grand Prix: Monaco</span>
+                        <span class="text-xs font-mono text-blue-300">Scheduled</span>
+                    </li>
+                </ul>
+                <p id="status-message" class="text-slate-400 text-sm italic"></p>
+            </div>
+            
+            <!-- Interactive Controls -->
+            <div class="space-y-4">
+                <h2 class="text-2xl font-semibold text-slate-200">Controls</h2>
+                <div class="space-y-4 bg-slate-700 p-6 rounded-lg shadow-lg">
+                    <input type="text" id="newEventInput" placeholder="Add new event (e.g., Baseball Game)" class="w-full px-4 py-2 rounded-md bg-slate-800 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <button id="addEventBtn" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 rounded-lg transition-colors">
+                        Add Event
+                    </button>
+                    <button id="removeLastBtn" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 rounded-lg transition-colors">
+                        Remove Last Event
+                    </button>
+                    <button id="filterBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded-lg transition-colors">
+                        Check All Events
+                    </button>
+                    <button id="highlightBtn" class="w-full bg-violet-500 hover:bg-violet-600 text-white font-bold py-2 rounded-lg transition-colors">
+                        Highlight Live Events
+                    </button>
+                    <div id="highlight-info" class="text-center text-slate-400 text-sm"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ===========================================
+        // Part 1: Variable Declarations and Conditionals
+        // ===========================================
+
+        // DOM element variables
+        const eventList = document.getElementById('event-list');
+        const newEventInput = document.getElementById('newEventInput');
+        const addEventBtn = document.getElementById('addEventBtn');
+        const removeLastBtn = document.getElementById('removeLastBtn');
+        const filterBtn = document.getElementById('filterBtn');
+        const highlightBtn = document.getElementById('highlightBtn');
+        const statusMessage = document.getElementById('status-message');
+        const highlightInfo = document.getElementById('highlight-info');
+
+        // A constant array to hold sports categories
+        const sportsCategories = ['football', 'basketball', 'tennis', 'motorsport'];
+
+        // A boolean to check the initial state of the list
+        const initialListLength = eventList.children.length;
+        let hasEvents = initialListLength > 0;
+
+        // Conditional statement to update the status message
+        if (hasEvents) {
+            statusMessage.textContent = `There are ${initialListLength} events currently on the schedule.`;
+        } else {
+            statusMessage.textContent = 'No events scheduled yet. Add some!';
+        }
+        
+        // ===========================================
+        // Part 2: Four Custom Functions
+        // ===========================================
+
+        /**
+         * 1. Function to add a new event to the list.
+         * @param {string} eventText - The text for the new event.
+         */
+        function addEvent(eventText) {
+            const trimmedText = eventText.trim();
+            if (trimmedText !== '') {
+                const newListItem = document.createElement('li');
+                newListItem.className = 'event-item p-3 bg-slate-600 rounded-lg flex justify-between items-center transition-transform hover:scale-105 duration-200';
+                
+                const spanText = document.createElement('span');
+                spanText.textContent = trimmedText;
+                
+                const spanStatus = document.createElement('span');
+                spanStatus.className = 'text-xs font-mono text-blue-300';
+                spanStatus.textContent = 'Scheduled';
+
+                newListItem.appendChild(spanText);
+                newListItem.appendChild(spanStatus);
+                
+                eventList.appendChild(newListItem);
+                newEventInput.value = ''; // Clear the input
+                statusMessage.textContent = `"${trimmedText}" has been added to the schedule!`;
+            } else {
+                statusMessage.textContent = 'Please enter a valid event name.';
+            }
+        }
+
+        /**
+         * 2. Function to remove the last event from the list.
+         */
+        function removeLastEvent() {
+            if (eventList.children.length > 0) {
+                const lastItem = eventList.lastElementChild;
+                const removedText = lastItem.querySelector('span').textContent;
+                lastItem.remove(); // Removes the element from the DOM
+                statusMessage.textContent = `"${removedText}" was removed.`;
+            } else {
+                statusMessage.textContent = 'The list is already empty!';
+            }
+        }
+
+        /**
+         * 3. Function to check and count the number of live events.
+         */
+        function checkLiveEvents() {
+            const events = document.querySelectorAll('.event-item');
+            let liveCount = 0;
+            
+            // Loop example using for...of to iterate over NodeList
+            for (const event of events) {
+                const statusSpan = event.querySelector('span:last-of-type');
+                if (statusSpan && statusSpan.textContent.toLowerCase() === 'live') {
+                    liveCount++;
+                }
+            }
+            return liveCount;
+        }
+
+        /**
+         * 4. Function to filter and display events based on a keyword.
+         * @param {string} keyword - The keyword to filter by.
+         */
+        function filterEventsByKeyword(keyword) {
+            const items = eventList.querySelectorAll('.event-item');
+            let foundCount = 0;
+            // Loop example using forEach
+            items.forEach(item => {
+                const text = item.querySelector('span').textContent.toLowerCase();
+                if (text.includes(keyword.toLowerCase())) {
+                    item.style.display = 'flex'; // Show the item
+                    foundCount++;
+                } else {
+                    item.style.display = 'none'; // Hide the item
+                }
+            });
+            statusMessage.textContent = `Found ${foundCount} events matching "${keyword}".`;
+        }
+
+        // ===========================================
+        // Part 3: Three Loop Examples
+        // (Two loops are already within the functions above)
+        // ===========================================
+
+        /**
+         * 3rd Loop Example: A classic for loop to add a class to every item
+         * This function will be called on page load.
+         */
+        function addHoverEffectToAll() {
+            const items = eventList.querySelectorAll('.event-item');
+            // Loop example using a classic for loop
+            for (let i = 0; i < items.length; i++) {
+                items[i].classList.add('transition-transform', 'hover:scale-105', 'duration-200');
+            }
+        }
+
+        // ===========================================
+        // Part 4: Five DOM Interactions
+        // ===========================================
+
+        // 1. Add event listener to the "Add Event" button
+        addEventBtn.addEventListener('click', () => {
+            // DOM Interaction: get element value
+            const newEvent = newEventInput.value;
+            addEvent(newEvent);
+        });
+
+        // 2. Add event listener to the "Remove Last" button
+        removeLastBtn.addEventListener('click', removeLastEvent);
+
+        // 3. Add event listener to the "Check All Events" button
+        filterBtn.addEventListener('click', () => {
+            // DOM Interaction: change text content
+            statusMessage.textContent = `Counting all events...`;
+            // Re-show all items
+            eventList.querySelectorAll('.event-item').forEach(item => {
+                item.style.display = 'flex';
+            });
+
+            // Loop example: for-of loop (already in checkLiveEvents function)
+            const liveCount = checkLiveEvents();
+            
+            // DOM Interaction: change text content based on logic
+            const allEventsCount = eventList.children.length;
+            statusMessage.textContent = `There are a total of ${allEventsCount} events, with ${liveCount} currently live.`;
+        });
+
+        // 4. Add event listener to the "Highlight Live Events" button
+        highlightBtn.addEventListener('click', () => {
+            const items = eventList.querySelectorAll('.event-item');
+            let highlightedCount = 0;
+
+            // Loop example: forEach loop (already in filterEventsByKeyword function, but used here as well)
+            items.forEach(item => {
+                const statusSpan = item.querySelector('span:last-of-type');
+                // Check if the item is "Live"
+                if (statusSpan && statusSpan.textContent.toLowerCase() === 'live') {
+                    // DOM Interaction: add/remove CSS classes
+                    item.classList.toggle('ring-4');
+                    item.classList.toggle('ring-teal-400');
+                    highlightedCount++;
+                }
+            });
+
+            // DOM Interaction: update text content
+            if (highlightedCount > 0) {
+                const isHighlighted = items[0].classList.contains('ring-4');
+                highlightInfo.textContent = isHighlighted ? `Live events are now highlighted!` : `Live event highlights removed.`;
+            } else {
+                highlightInfo.textContent = 'No live events to highlight.';
+            }
+        });
+
+        // 5. DOM Interaction: Event listener for keypress on input field
+        newEventInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                addEvent(newEventInput.value);
+            }
+        });
+
+        // Initial call to add hover effects
+        addHoverEffectToAll();
+    </script>
+</body>
+</html>
